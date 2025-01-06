@@ -1,0 +1,87 @@
+package com.hotelautomation.util;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+public class DatabaseConnection {
+	private static final String DB_URL = "jdbc:mysql://localhost:3306/hotel_db";    		
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "deepp123";
+
+    static {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    }
+
+    public static void setupDatabase() {
+        try (Connection conn = DriverManager.getConnection(
+        		
+        		DB_URL + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
+                
+                DB_USER, DB_PASSWORD)) {
+
+            Statement stmt = conn.createStatement();
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS hotel_db");
+            stmt.executeUpdate("USE hotel_db");
+
+            createTables(stmt);
+            System.out.println("Veritabanı ve tablolar başarıyla oluşturuldu!");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("Veritabanı oluşturulurken hata: " + e.getMessage());
+        }
+    }
+
+    private static void createTables(Statement stmt) throws SQLException {
+        String createRoomsTable = """
+            CREATE TABLE IF NOT EXISTS rooms (
+                room_id VARCHAR(36) PRIMARY KEY,
+                room_number VARCHAR(10) NOT NULL UNIQUE,
+                room_price VARCHAR(20) NOT NULL
+            )
+        """;
+        stmt.executeUpdate(createRoomsTable);
+        System.out.println("Rooms tablosu oluşturuldu veya zaten mevcut.");
+
+        String createCustomersTable = """
+            CREATE TABLE IF NOT EXISTS customers (
+                customer_id VARCHAR(36) PRIMARY KEY,
+                name VARCHAR(100) NOT NULL,
+                email VARCHAR(100) NOT NULL UNIQUE,
+                password VARCHAR(100) NOT NULL,
+                phone VARCHAR(20),
+                is_admin BOOLEAN DEFAULT FALSE
+            )
+        """;
+        stmt.executeUpdate(createCustomersTable);
+        System.out.println("Customers tablosu oluşturuldu veya zaten mevcut.");
+
+        String createReservationsTable = """
+            CREATE TABLE IF NOT EXISTS reservations (
+                reservation_id VARCHAR(36) PRIMARY KEY,
+                room_number INT NOT NULL,
+                check_in_date DATETIME NOT NULL,
+                check_out_date DATETIME NOT NULL,
+                price DOUBLE NOT NULL,
+                number_of_guests INT NOT NULL,
+                is_empty BOOLEAN DEFAULT TRUE,
+                customer_id VARCHAR(36),
+                FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+                ON DELETE CASCADE
+            )
+        """;
+        stmt.executeUpdate(createReservationsTable);
+        System.out.println("Reservations tablosu oluşturuldu veya zaten mevcut.");
+  
+    }
+}
